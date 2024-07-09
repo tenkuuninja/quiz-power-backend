@@ -1,0 +1,215 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+}
+
+datasource db {
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
+  relationMode = "foreignKeys"
+}
+
+enum UserRole {
+  Admin
+  User
+}
+
+enum UserStatus {
+  Inactive
+  Active
+}
+
+enum QuestionType {
+  SingleChoice
+  MultipleChoice
+  TextEntry
+  TextEntryWithLength
+}
+
+enum GameType {
+  Live
+  Solo
+}
+
+model User {
+  id        Int        @id @unique() @default(autoincrement()) @db.UnsignedInt
+  name      String     @db.VarChar(255)
+  username  String     @db.VarChar(255)
+  password  String     @db.VarChar(255)
+  avatar    String     @db.VarChar(255)
+  status    UserStatus @default(Active)
+  role      UserRole   @default(User)
+  updatedAt DateTime   @updatedAt
+  createdAt DateTime   @default(now())
+
+  quiz   Quiz[]
+  qame   Game[]
+  player Player[]
+
+  @@map("user")
+}
+
+model Quiz {
+  id         Int      @id @unique() @default(autoincrement()) @db.UnsignedInt
+  userId     Int      @db.UnsignedInt
+  name       String   @default("") @db.VarChar(1000)
+  status     Int      @default(0) @db.TinyInt // 0: Draft 1: Pushlished
+  visibility Int      @default(1) @db.TinyInt // 1: Public 2: Private
+  version    Int      @default(1) @db.Int
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+
+  user         User           @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  question     Question[]
+  game         Game[]
+  quizCategory QuizCategory[]
+
+  @@index([userId])
+  @@fulltext([name])
+  @@map("quiz")
+}
+
+model Question {
+  id           Int          @id @unique() @default(autoincrement()) @db.UnsignedInt
+  quizId       Int          @db.UnsignedInt
+  content      String       @db.Text
+  questionType QuestionType
+  answerLength Int?         @db.TinyInt
+  updatedAt    DateTime     @updatedAt
+  createdAt    DateTime     @default(now())
+
+  quiz    Quiz             @relation(fields: [quizId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  options QuestionOption[]
+
+  @@index([quizId])
+  @@map("question")
+}
+
+model QuestionOption {
+  id         Int     @id @unique() @default(autoincrement()) @db.UnsignedInt
+  questionId Int     @db.UnsignedInt
+  content    String  @db.Text
+  isCorrect  Boolean @db.TinyInt
+
+  question Question @relation(fields: [questionId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  quizId   Int?     @db.UnsignedInt
+
+  @@index([questionId])
+  @@map("question-option")
+}
+
+model Game {
+  id          Int      @id @unique() @default(autoincrement()) @db.UnsignedInt
+  userId      Int?     @db.UnsignedInt
+  quizId      Int      @db.UnsignedInt
+  quizVersion Int      @db.Int
+  gameType    GameType
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  user         User?          @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  quiz         Quiz           @relation(fields: [quizId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  gameQuestion GameQuestion[]
+  player       Player[]
+
+  @@index([userId])
+  @@index([quizId])
+  @@map("game")
+}
+
+model GameQuestion {
+  id           Int          @id @unique() @default(autoincrement()) @db.UnsignedInt
+  gameId       Int          @db.UnsignedInt
+  content      String       @db.Text
+  questionType QuestionType
+  answerLength Int          @db.TinyInt
+  createdAt    DateTime     @default(now())
+
+  game               Game                 @relation(fields: [gameId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  gameQuestionOption GameQuestionOption[]
+  answer             Answer[]
+
+  @@index([gameId])
+  @@map("game-question")
+}
+
+model GameQuestionOption {
+  id             Int     @id @unique() @default(autoincrement()) @db.UnsignedInt
+  gameQuestionId Int     @db.UnsignedInt
+  content        String  @db.Text
+  isCorrect      Boolean @db.TinyInt
+
+  gameQuestion GameQuestion @relation(fields: [gameQuestionId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([gameQuestionId])
+  @@map("game-question-option")
+}
+
+model Player {
+  id        Int      @id @unique() @default(autoincrement()) @db.UnsignedInt
+  userId    Int?     @db.UnsignedInt
+  gameId    Int      @db.UnsignedInt
+  name      String   @db.VarChar(255)
+  avatar    String   @db.VarChar(255)
+  score     String   @db.VarChar(255)
+  startedAt DateTime
+  endedAt   DateTime
+  createdAt DateTime @default(now())
+
+  user   User?    @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  game   Game     @relation(fields: [gameId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  answer Answer[]
+
+  @@index([userId])
+  @@index([gameId])
+  @@map("player")
+}
+
+model Answer {
+  id             Int      @id @unique() @default(autoincrement()) @db.UnsignedInt
+  playerId       Int      @db.UnsignedInt
+  gameQuestionId Int      @db.UnsignedInt
+  optionIds      String?  @db.VarChar(255)
+  content        String?  @db.VarChar(255)
+  score          String   @db.VarChar(255)
+  isCorrect      Boolean  @db.TinyInt
+  startedAt      DateTime
+  endedAt        DateTime
+
+  player       Player       @relation(fields: [playerId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  gameQuestion GameQuestion @relation(fields: [gameQuestionId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([playerId])
+  @@index([gameQuestionId])
+  @@map("answer")
+}
+
+model Category {
+  id           Int            @id @unique() @default(autoincrement()) @db.UnsignedInt
+  name         String         @db.VarChar(255)
+  QuizCategory QuizCategory[]
+
+  @@map("category")
+}
+
+model QuizCategory {
+  quizId     Int      @db.UnsignedInt
+  categoryId Int      @db.UnsignedInt
+  quiz       Quiz     @relation(fields: [quizId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@id([quizId, categoryId])
+  @@index([quizId])
+  @@index([categoryId])
+  @@map("quiz-category")
+}
+
+model Otp {
+  id        Int      @id @unique() @default(autoincrement()) @db.UnsignedInt
+  address   String   @db.VarChar(255)
+  code      String   @db.VarChar(255)
+  expiredAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("otp")
+}
