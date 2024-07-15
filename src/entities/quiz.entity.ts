@@ -26,6 +26,9 @@ export class QuizEntity {
   @Column({ type: 'text' })
   name: string;
 
+  @Column({ default: '' })
+  image: string;
+
   @Column({ type: 'int', default: EQuizStatus.Draft })
   status: EQuizStatus;
 

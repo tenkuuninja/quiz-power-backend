@@ -25,9 +25,6 @@ export class QuestionEntity {
   @Column()
   questionType: EQuestionType;
 
-  @Column({ nullable: true })
-  answerLength?: number;
-
   @CreateDateColumn()
   createdAt: Date;
 

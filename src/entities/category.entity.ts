@@ -16,6 +16,6 @@ export class CategoryEntity {
   name: string;
 
   @ManyToMany(() => QuizEntity)
-  @JoinTable({ name: 'quiz_entity' })
+  @JoinTable({ name: 'quiz_category' })
   quizzes: QuizEntity[];
 }

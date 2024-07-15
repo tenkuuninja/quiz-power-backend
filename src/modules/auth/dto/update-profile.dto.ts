@@ -1,20 +1,20 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsString } from 'class-validator';
+import { IsString } from 'class-validator';
 import { IsNullable } from '../../../common/decorators/validator.decorator';
 
-export class CreateContestDto {
-  userId: number;
-
-  @IsNumber()
+export class UpdateProfileDto {
+  @IsString()
+  @IsNullable()
   @ApiProperty({ default: '' })
-  quizId: number;
+  id: number;
 
   @IsString()
+  @IsNullable()
   @ApiProperty({ default: '' })
   name: string;
 
-  @IsNumber()
+  @IsString()
   @IsNullable()
   @ApiProperty({ default: '' })
-  contestType: string;
+  avatar: string;
 }

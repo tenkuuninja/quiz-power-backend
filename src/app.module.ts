@@ -17,6 +17,8 @@ import { MailModule } from './modules/mail/mail.module';
 import { QuizModule } from './modules/quiz/quiz.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { UploadModule } from './modules/upload/upload.module';
+import { UserModule } from './modules/user/user.module';
 
 @Module({
   imports: [
@@ -36,6 +38,8 @@ import { join } from 'path';
     CategoryModule,
     QuizModule,
     ContestModule,
+    UploadModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [

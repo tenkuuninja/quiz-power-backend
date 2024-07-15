@@ -1,6 +1,7 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import htmlToDdf from 'html-pdf-node';
 import { firstValueFrom } from 'rxjs';
 import { DataSource, Like, Repository } from 'typeorm';
 import {
@@ -11,13 +12,15 @@ import {
 } from '../../entities';
 import {
   CreateQuizDto,
+  DeleteQuizDto,
   GetDetailQuizDto,
   GetListQuizDto,
+  SuggestionAnswerDto,
+  SuggestionQuestionDto,
   UpdateQuizDto,
 } from './dto';
-import { DeleteQuizDto } from './dto/delete-quiz.dto';
-import { SuggestionAnswerDto } from './dto/suggestion-answer.dto';
-import { SuggestionQuestionDto } from './dto/suggestion-question.dto';
+import { EQuizStatus, EQuizVisibility } from '../../common/enums/entity.enum';
+import { ZUKI_API_KEY } from '../../configs/app';
 
 @Injectable()
 export class QuizService {
@@ -30,6 +33,19 @@ export class QuizService {
     private questionRepository: Repository<QuestionEntity>,
     private httpService: HttpService,
   ) {}
+
+  async getListOutstandingQuiz() {
+    const quiz = await this.quizRepository.find({
+      where: {
+        status: EQuizStatus.Published,
+        visibility: EQuizVisibility.Public,
+      },
+      relations: ['questions'],
+      take: 16,
+      skip: 0,
+    });
+    return { data: quiz };
+  }
 
   async getListQuiz(dto: GetListQuizDto) {
     const quiz = await this.quizRepository.find({
@@ -78,6 +94,7 @@ export class QuizService {
         let quiz = new QuizEntity();
         quiz.id = dto?.id;
         quiz.name = dto?.name;
+        quiz.image = dto?.image;
         quiz.visibility = dto?.visibility;
         quiz.status = dto?.status;
 
@@ -97,7 +114,6 @@ export class QuizService {
           question.id = questionDto?.id;
           question.content = questionDto?.content;
           question.questionType = questionDto?.questionType;
-          question.answerLength = questionDto?.answerLength;
           question.quiz = quiz;
           question = await transactionalEntityManager.save(
             QuestionEntity,
@@ -145,15 +161,44 @@ export class QuizService {
   }
 
   async suggestQuestionCompletion(dto: SuggestionQuestionDto) {
-    // await this.quizRepository.delete({
-    //   id: +dto.id,
-    // });
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(
+          'https://zukijourney.xyzbot.net/v1/chat/completions',
+          {
+            model: 'gpt-3.5-turbo-16k',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a quiz maker assistant',
+              },
+              {
+                role: 'user',
+                content: `Generate for me about 10 questions of this topic \"${dto?.message}\" and 4 options each and mark the correct answer. Returning without markdown an array of json with the content field being the question content, options field is an array of json with the content field being the answer content, isCorrect of type boolean to mark the correct answer, true if content is correct, false if content is wrong. Please dont return unless markdown because i will parse it to json. Language is vietnamese`,
+              },
+            ],
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${ZUKI_API_KEY}`,
+            },
+          },
+        ),
+      );
 
-    // https://zukijourney.xyzbot.net/v1/chat/completions
+      const rawContent = response?.data?.choices?.[0]?.message?.content;
 
-    return {
-      result: 'success',
-    };
+      console.log(rawContent);
+      const options = JSON.parse(rawContent);
+
+      return {
+        result: 'success',
+        data: options,
+      };
+    } catch (error) {
+      console.log('suggestAnswerCompletion', error?.response?.data);
+      throw new Error(error);
+    }
   }
 
   async suggestAnswerCompletion(dto: SuggestionAnswerDto) {
@@ -170,13 +215,13 @@ export class QuizService {
               },
               {
                 role: 'user',
-                content: `Generate for me 4 answers to the ${dto?.type} question \"${dto?.message}\" and mark the correct answer. Returning without markdown an array of json with the content field being the answer content, isCorrect of type boolean to mark the correct answer, true if content is correct, false if content is wrong`,
+                content: `Generate for me 4 answers to the ${dto?.type} question \"${dto?.message}\" and mark the correct answer. Returning without markdown an array of json with the content field being the answer content, isCorrect of type boolean to mark the correct answer, true if content is correct, false if content is wrong. Language is vietnamese`,
               },
             ],
           },
           {
             headers: {
-              Authorization: `Bearer ${'zu-133136731ff9ed2b03db1c439618ccea'}`,
+              Authorization: `Bearer ${ZUKI_API_KEY}`,
             },
           },
         ),
@@ -193,5 +238,21 @@ export class QuizService {
       console.log('suggestAnswerCompletion', error?.response?.data);
       throw new Error(error);
     }
+  }
+
+  async downloadQuizPdf(dto: GetDetailQuizDto) {
+    const quiz = await this.quizRepository.findOne({
+      relations: ['categories', 'questions', 'questions.options'],
+      where: {
+        id: +dto.id,
+      },
+    });
+
+    const pdfBuffer: any = await htmlToDdf.generatePdf(
+      { content: 'html' },
+      { format: 'A4' },
+    );
+
+    return { data: quiz };
   }
 }

@@ -1,6 +1,5 @@
 export * from './answer.entity';
 export * from './category.entity';
-export * from './contest-code.entity';
 export * from './contest-question-option.entity';
 export * from './contest-question.entity';
 export * from './contest-quiz.entity';

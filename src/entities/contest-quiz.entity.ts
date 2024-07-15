@@ -19,8 +19,11 @@ export class ContestQuizEntity {
   // @Column()
   // quizId: number;
 
-  @Column({ default: '' })
+  @Column({ type: 'text' })
   name: string;
+
+  @Column()
+  image: string;
 
   @Column({ default: 1 })
   version: number;

@@ -93,6 +93,7 @@ export class ContestService {
       contestType: dto?.contestType || EContestType.Live,
       joinCode: joinCode,
       user: user,
+      name: dto?.name,
       status: EContestStatus.Idle,
       createdAt: dayjs().toISOString(),
       socketIds: [] as string[],
@@ -139,6 +140,7 @@ export class ContestService {
 
         let newContestQuiz = new ContestQuizEntity();
         newContestQuiz.name = currentQuiz?.name;
+        newContestQuiz.image = currentQuiz?.image;
         newContestQuiz.version = currentQuiz?.version;
         newContestQuiz.quiz = quiz;
 
@@ -151,7 +153,6 @@ export class ContestService {
           let question = new ContestQuestionEntity();
           question.content = questionDto?.content;
           question.questionType = questionDto?.questionType;
-          question.answerLength = questionDto?.answerLength;
           question.contestQuiz = newContestQuiz;
           question = await transactionalEntityManager.save(
             ContestQuestionEntity,
@@ -364,8 +365,8 @@ export class ContestService {
       async (transactionalEntityManager) => {
         let newContest = new ContestEntity();
         newContest.contestQuiz = contest?.contestQuiz;
-        newContest.contestType = contest?.contestType;
         newContest.user = contest?.user;
+        newContest.name = contest?.name;
         newContest.startedAt = contest?.startedAt;
         newContest.endedAt = contest?.endedAt;
         newContest.createdAt = contest?.createdAt;

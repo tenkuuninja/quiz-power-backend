@@ -16,6 +16,9 @@ export class UserEntity {
   @PrimaryGeneratedColumn('increment')
   id: number;
 
+  @Column({ nullable: true })
+  email: string;
+
   @Column()
   name: string;
 

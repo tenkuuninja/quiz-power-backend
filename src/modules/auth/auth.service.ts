@@ -8,7 +8,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
 import { UserEntity } from '../../entities';
-import { GetProfileDto, LoginDto } from './dto';
+import {
+  ChangePasswordDto,
+  GetProfileDto,
+  LoginDto,
+  UpdateProfileDto,
+} from './dto';
 import { RegisterDto } from './dto/register.dto';
 
 @Injectable()
@@ -122,6 +127,38 @@ export class AuthService {
   // }
 
   async getProfile(dto: GetProfileDto) {
+    const user = await this.usersRepository.findOne({
+      where: {
+        id: dto.id,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+
+    return {
+      data: user,
+    };
+  }
+
+  async updateProfile(dto: UpdateProfileDto) {
+    const user = await this.usersRepository.findOne({
+      where: {
+        id: dto.id,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+
+    return {
+      data: user,
+    };
+  }
+
+  async changePasswordProfile(dto: ChangePasswordDto) {
     const user = await this.usersRepository.findOne({
       where: {
         id: dto.id,

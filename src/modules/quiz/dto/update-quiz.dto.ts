@@ -82,6 +82,11 @@ export class UpdateQuizDto {
   @ApiProperty({ default: '' })
   name: string;
 
+  @IsString()
+  @IsNullable()
+  @ApiProperty({ default: '' })
+  image: string;
+
   @IsNumber()
   @IsNullable()
   @ApiProperty({ default: '' })

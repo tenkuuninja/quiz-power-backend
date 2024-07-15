@@ -19,10 +19,10 @@ import {
   DeleteQuizDto,
   GetDetailQuizDto,
   GetListQuizDto,
+  SuggestionAnswerDto,
+  SuggestionQuestionDto,
+  UpdateQuizDto,
 } from './dto';
-import { SuggestionAnswerDto } from './dto/suggestion-answer.dto';
-import { SuggestionQuestionDto } from './dto/suggestion-question.dto';
-import { UpdateQuizDto } from './dto/update-quiz.dto';
 import { QuizService } from './quiz.service';
 
 @Controller('quiz')
@@ -30,6 +30,12 @@ import { QuizService } from './quiz.service';
 @ApiBearerAuth()
 export class QuizController {
   constructor(private quizService: QuizService) {}
+
+  @Get('/get-outstanding-quiz')
+  @HttpCode(200)
+  async getListOutstandingQuiz() {
+    return this.quizService.getListOutstandingQuiz();
+  }
 
   @Get('/get-list-quiz')
   @UseGuards(AuthGuard)

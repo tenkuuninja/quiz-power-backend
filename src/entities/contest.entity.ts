@@ -7,7 +7,6 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { EContestType } from '../common/enums/entity.enum';
 import { ContestQuizEntity } from './contest-quiz.entity';
 import { PlayerEntity } from './player.entity';
 import { UserEntity } from './user.entity';
@@ -24,7 +23,10 @@ export class ContestEntity {
   // contestQuizId: number;
 
   @Column()
-  contestType: EContestType;
+  name: string;
+
+  // @Column()
+  // contestType: EContestType;
 
   @Column()
   startedAt: Date;

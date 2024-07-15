@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   HttpCode,
+  Patch,
   Post,
   UseGuards,
   UsePipes,
@@ -10,7 +11,12 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto } from './dto';
+import {
+  ChangePasswordDto,
+  LoginDto,
+  RegisterDto,
+  UpdateProfileDto,
+} from './dto';
 import { User } from '../../common/decorators/user.decorator';
 import { AuthGuard } from '../../common/guard';
 
@@ -39,5 +45,19 @@ export class AppUserController {
   @HttpCode(200)
   async getProfile(@User('id') userId: number) {
     return this.authService.getProfile({ id: userId });
+  }
+
+  @Patch('/profile')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @HttpCode(200)
+  async updateProfile(@Body() body: UpdateProfileDto) {
+    return this.authService.updateProfile(body);
+  }
+
+  @Patch('/change-password')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @HttpCode(200)
+  async changePasswordProfile(@Body() body: ChangePasswordDto) {
+    return this.authService.changePasswordProfile(body);
   }
 }
