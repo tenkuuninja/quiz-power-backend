@@ -52,7 +52,7 @@ export class QuizEntity {
   user: UserEntity;
 
   @ManyToMany(() => CategoryEntity, { cascade: true })
-  @JoinTable({ name: 'quiz_entity' })
+  @JoinTable({ name: 'quiz_category' })
   categories: CategoryEntity[];
 
   @OneToMany(() => QuestionEntity, (entity) => entity.quiz, { cascade: true })
