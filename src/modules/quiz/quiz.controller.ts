@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { User } from '../../common/decorators/user.decorator';
+import { EUserRole } from '../../common/enums/entity.enum';
 import { AuthGuard } from '../../common/guard';
 import {
   CreateQuizDto,
@@ -41,13 +42,20 @@ export class QuizController {
   @UseGuards(AuthGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(200)
-  async getListQuiz(@Query() query: GetListQuizDto) {
-    return this.quizService.getListQuiz(query);
+  async getListQuiz(
+    @Query() query: GetListQuizDto,
+    @User('id') userId: number,
+    @User('role') role: EUserRole,
+  ) {
+    return this.quizService.getListQuiz({
+      ...query,
+      userId: role === EUserRole.Admin ? undefined : userId,
+    });
   }
 
   @Get('/get-detail-quiz')
   @UsePipes(new ValidationPipe({ transform: true }))
-  @UseGuards(AuthGuard)
+  // @UseGuards(AuthGuard)
   @HttpCode(200)
   async getDetailQuiz(@Query() query: GetDetailQuizDto) {
     return this.quizService.getDetailQuiz(query);
@@ -91,5 +99,13 @@ export class QuizController {
   @HttpCode(200)
   async suggestAnswerCompletion(@Body() body: SuggestionAnswerDto) {
     return this.quizService.suggestAnswerCompletion(body);
+  }
+
+  @Post('/export-pdf')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @UseGuards(AuthGuard)
+  @HttpCode(200)
+  async exportQuizPdf(@Body() body: GetDetailQuizDto) {
+    return this.quizService.exportQuizPdf(body);
   }
 }

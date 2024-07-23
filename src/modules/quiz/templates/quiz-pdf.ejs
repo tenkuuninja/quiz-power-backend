@@ -1,11 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
 </head>
+
+<% 
+
+const labels = ["A", "B", "C", "D", "E", "F"]
+
+%>
+
 <body>
-  
+  <% for (const question of questions) { %>
+    <div style="cursor: pointer; padding: 16px; color: black;">
+      <div style="margin-top: 4px;">
+        <%- question.content %>
+      </div>
+      <div style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 16px;">
+        <% for (let i = 0; i < question.options?.length; i++) { %>
+        <% const option = question.options[i] %>
+          <div key="<%= option.id || j %>" style="display: flex; width: calc(50% - 8px); align-items: center; gap: 16px;">
+            <div style="height: 12px; width: 12px;">
+              <%= labels[i] %>
+            </div>
+            <span>
+              <%= option.content %>
+            </span>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  <% } %>
+
 </body>
+
 </html>

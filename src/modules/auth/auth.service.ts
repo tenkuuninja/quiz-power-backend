@@ -7,25 +7,34 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
-import { UserEntity } from '../../entities';
+import { OtpEntity, UserEntity } from '../../entities';
 import {
   ChangePasswordDto,
+  ForgotPasswordDto,
+  ForgotPasswordVerifyDto,
   GetProfileDto,
   LoginDto,
   UpdateProfileDto,
 } from './dto';
 import { RegisterDto } from './dto/register.dto';
+import { MailService } from '../mail/mail.service';
+import { makeCodeNumber } from '../../common/helpers/string.helper';
+import dayjs from 'dayjs';
+import { faker } from '@faker-js/faker';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(UserEntity)
-    private usersRepository: Repository<UserEntity>,
+    private userRepository: Repository<UserEntity>,
+    @InjectRepository(OtpEntity)
+    private otpRepository: Repository<OtpEntity>,
     private jwtService: JwtService,
+    private mailService: MailService,
   ) {}
 
   async validateUser(username: string, password: string): Promise<any> {
-    const user = await this.usersRepository.findOne({
+    const user = await this.userRepository.findOne({
       where: {
         username: username,
       },
@@ -46,7 +55,7 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const user = await this.usersRepository.findOne({
+    const user = await this.userRepository.findOne({
       where: {
         username: dto.username,
       },
@@ -76,33 +85,35 @@ export class AuthService {
   }
 
   async register(dto: RegisterDto) {
-    const userExistByPhone = await this.usersRepository.findOne({
-      where: {
-        username: dto.username,
-      },
+    const userExisted = await this.userRepository.findOne({
+      where: [
+        {
+          email: dto.email,
+        },
+        {
+          username: dto.username,
+        },
+      ],
     });
 
-    if (userExistByPhone) {
-      throw new BadRequestException('Username is exist');
+    if (userExisted) {
+      throw new BadRequestException('Username or email is exist');
     }
 
     const hash = bcrypt.hashSync(dto.password, 10);
 
-    await this.usersRepository.insert({
+    await this.userRepository.insert({
       username: dto.username,
+      email: dto.email,
       password: hash,
-      name: dto.username,
-      avatar: '',
+      name: dto.name,
+      avatar: faker.image.avatar(),
     });
 
     return { result: 'success' };
   }
 
   // async logout(userId: number) {
-  //   await this.prisma.appuser.update({
-  //     data: { refreshToken: null },
-  //     where: { appUserId: userId },
-  //   });
   // }
 
   // async refreshAccessToken(oldRefreshToken: string) {
@@ -126,8 +137,77 @@ export class AuthService {
   //   };
   // }
 
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const user = await this.userRepository.findOne({
+      where: {
+        email: dto.email,
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User is not exist!');
+    }
+
+    const otpCode = makeCodeNumber();
+
+    await this.otpRepository.upsert(
+      {
+        address: dto.email,
+        code: otpCode,
+        expiredAt: dayjs().add(1, 'minute').toISOString(),
+      },
+      {
+        conflictPaths: {
+          address: true,
+        },
+      },
+    );
+
+    await this.mailService.sendOtpCode(dto.email, otpCode);
+
+    return {
+      result: 'success',
+    };
+  }
+
+  async forgotPasswordVerify(dto: ForgotPasswordVerifyDto) {
+    const user = await this.userRepository.findOne({
+      where: {
+        email: dto.email,
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User is not exist!');
+    }
+
+    const otp = await this.otpRepository.findOne({
+      where: {
+        address: dto.email,
+        code: dto.otp,
+      },
+    });
+
+    if (!otp) {
+      throw new BadRequestException('Invalid code!');
+    }
+
+    if (dayjs(otp.expiredAt).isBefore(dayjs())) {
+      throw new BadRequestException('Code expired!');
+    }
+
+    const hash = bcrypt.hashSync(dto.password, 10);
+    user.password = hash;
+    await this.userRepository.save(user);
+    await this.otpRepository.delete(otp);
+
+    return {
+      result: 'success',
+    };
+  }
+
   async getProfile(dto: GetProfileDto) {
-    const user = await this.usersRepository.findOne({
+    const user = await this.userRepository.findOne({
       where: {
         id: dto.id,
       },
@@ -143,7 +223,7 @@ export class AuthService {
   }
 
   async updateProfile(dto: UpdateProfileDto) {
-    const user = await this.usersRepository.findOne({
+    const user = await this.userRepository.findOne({
       where: {
         id: dto.id,
       },
@@ -153,13 +233,17 @@ export class AuthService {
       throw new UnauthorizedException();
     }
 
+    user.name = dto.name;
+    user.avatar = dto.avatar;
+    await this.userRepository.save(user);
+
     return {
-      data: user,
+      result: 'success',
     };
   }
 
   async changePasswordProfile(dto: ChangePasswordDto) {
-    const user = await this.usersRepository.findOne({
+    const user = await this.userRepository.findOne({
       where: {
         id: dto.id,
       },
@@ -169,8 +253,20 @@ export class AuthService {
       throw new UnauthorizedException();
     }
 
+    const passwordCorrect = await bcrypt.compare(
+      dto.oldPassword,
+      user.password,
+    );
+    if (!passwordCorrect) {
+      throw new BadRequestException('Password is incorrect');
+    }
+
+    const hash = bcrypt.hashSync(dto.newPassword, 10);
+    user.password = hash;
+    await this.userRepository.save(user);
+
     return {
-      data: user,
+      result: 'success',
     };
   }
 }

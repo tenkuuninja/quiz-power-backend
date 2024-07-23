@@ -7,3 +7,4 @@ export * from './join-contest.dto';
 export * from './start-contest.dto';
 export * from './submit-answer.dto';
 export * from './update-contest.dto';
+export * from './find-contest.dto';

@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { randomInt, randomUUID } from 'crypto';
 import dayjs from 'dayjs';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, Raw, Repository } from 'typeorm';
 import {
   AnswerEntity,
   ContestEntity,
@@ -17,6 +17,7 @@ import { codeStore, contestStore } from './constants/store';
 import { ContestSocketGateway } from './contest.socket-gateway';
 import {
   CreateContestDto,
+  FindContestDto,
   GetDetailContestDto,
   GetListContestDto,
   StartContestDto,
@@ -45,15 +46,32 @@ export class ContestService {
   async getListContest(dto: GetListContestDto) {
     const contest = await this.contestRepository.find({
       where: {
-        // name: dto.search ? Like(dto.search) : undefined,
+        name: dto.search
+          ? Raw((alias) => `LOWER(${alias}) Like LOWER(:search)`, {
+              search: `%${dto.search}%`,
+            })
+          : undefined,
+        user: {
+          id: dto.userId,
+        },
       },
       relations: ['contestQuiz', 'players'],
+      order: {
+        createdAt: 'DESC',
+      },
       take: +dto.pageSize,
       skip: +(dto.page - 1) * +dto.pageSize,
     });
     const total = await this.contestRepository.count({
       where: {
-        // name: dto.search ? Like(dto.search) : undefined,
+        name: dto.search
+          ? Raw((alias) => `LOWER(${alias}) Like LOWER(:search)`, {
+              search: `%${dto.search}%`,
+            })
+          : undefined,
+        user: {
+          id: dto.userId,
+        },
       },
     });
     return { data: contest, total: total };
@@ -206,6 +224,23 @@ export class ContestService {
 
     return {
       result: 'success',
+    };
+  }
+
+  async getContestByCode(dto: FindContestDto) {
+    const contestId = codeStore[dto.code];
+    if (!contestId) {
+      throw new BadRequestException('Contest not found!');
+    }
+
+    const contest = contestStore[contestId];
+    if (!contest) {
+      throw new BadRequestException('Contest not found!');
+    }
+
+    return {
+      result: 'success',
+      data: contest,
     };
   }
 

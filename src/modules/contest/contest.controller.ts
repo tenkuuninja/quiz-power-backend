@@ -16,6 +16,7 @@ import { ContestService } from './contest.service';
 import {
   CreateContestDto,
   EndContestDto,
+  FindContestDto,
   GetDetailContestDto,
   GetListContestDto,
   StartContestDto,
@@ -33,8 +34,11 @@ export class ContestController {
   @UseGuards(AuthGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(200)
-  async getListContest(@Query() query: GetListContestDto) {
-    return this.contestService.getListContest(query);
+  async getListContest(
+    @Query() query: GetListContestDto,
+    @User('id') userId: number,
+  ) {
+    return this.contestService.getListContest({ ...query, userId });
   }
 
   @Get('/get-detail-contest')
@@ -51,6 +55,14 @@ export class ContestController {
   @HttpCode(200)
   async createContest(@Body() body: CreateContestDto, @User('id') userId) {
     return this.contestService.createContest({ ...body, userId });
+  }
+
+  @Post('/find-contest')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @UseGuards(AuthGuard)
+  @HttpCode(200)
+  async findContest(@Body() body: FindContestDto) {
+    return this.contestService.getContestByCode({ ...body });
   }
 
   @Post('/start-contest')

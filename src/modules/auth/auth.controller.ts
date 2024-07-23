@@ -13,6 +13,8 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import {
   ChangePasswordDto,
+  ForgotPasswordDto,
+  ForgotPasswordVerifyDto,
   LoginDto,
   RegisterDto,
   UpdateProfileDto,
@@ -40,6 +42,20 @@ export class AppUserController {
     return this.authService.register(body);
   }
 
+  @Post('/forgot-password')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @HttpCode(200)
+  async forgotPassword(@Body() body: ForgotPasswordDto) {
+    return this.authService.forgotPassword(body);
+  }
+
+  @Post('/forgot-password-verify')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @HttpCode(200)
+  async forgotPasswordVerify(@Body() body: ForgotPasswordVerifyDto) {
+    return this.authService.forgotPasswordVerify(body);
+  }
+
   @Get('/profile')
   @UseGuards(AuthGuard)
   @HttpCode(200)
@@ -48,16 +64,24 @@ export class AppUserController {
   }
 
   @Patch('/profile')
+  @UseGuards(AuthGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(200)
-  async updateProfile(@Body() body: UpdateProfileDto) {
-    return this.authService.updateProfile(body);
+  async updateProfile(
+    @Body() body: UpdateProfileDto,
+    @User('id') userId: number,
+  ) {
+    return this.authService.updateProfile({ ...body, id: userId });
   }
 
-  @Patch('/change-password')
+  @Post('/change-password')
+  @UseGuards(AuthGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(200)
-  async changePasswordProfile(@Body() body: ChangePasswordDto) {
-    return this.authService.changePasswordProfile(body);
+  async changePasswordProfile(
+    @Body() body: ChangePasswordDto,
+    @User('id') userId: number,
+  ) {
+    return this.authService.changePasswordProfile({ ...body, id: userId });
   }
 }

@@ -1,13 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder } from '@nestjs/swagger';
 import { SwaggerModule } from '@nestjs/swagger/dist';
-import { AppModule } from './app.module';
-import { HttpAdapterHost } from '@nestjs/core';
-import { AllExceptionsFilter } from './common/exception/all.exception';
 import { SecuritySchemeObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
-import { initializeFirebase } from './common/configs/firebase';
-import { ValidationPipe } from '@nestjs/common';
-import { SocketIoAdapter } from './common/adapters';
+import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

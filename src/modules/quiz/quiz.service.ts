@@ -3,7 +3,9 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import htmlToDdf from 'html-pdf-node';
 import { firstValueFrom } from 'rxjs';
-import { DataSource, Like, Repository } from 'typeorm';
+import { DataSource, Raw, Repository } from 'typeorm';
+import { EQuizStatus, EQuizVisibility } from '../../common/enums/entity.enum';
+import { ZUKI_API_KEY } from '../../configs/app';
 import {
   CategoryEntity,
   QuestionEntity,
@@ -19,8 +21,8 @@ import {
   SuggestionQuestionDto,
   UpdateQuizDto,
 } from './dto';
-import { EQuizStatus, EQuizVisibility } from '../../common/enums/entity.enum';
-import { ZUKI_API_KEY } from '../../configs/app';
+import path from 'path';
+import ejs from 'ejs';
 
 @Injectable()
 export class QuizService {
@@ -50,15 +52,28 @@ export class QuizService {
   async getListQuiz(dto: GetListQuizDto) {
     const quiz = await this.quizRepository.find({
       where: {
-        name: dto.search ? Like(dto.search) : undefined,
+        name: dto.search
+          ? Raw((alias) => `LOWER(${alias}) Like LOWER(:search)`, {
+              search: `%${dto.search}%`,
+            })
+          : undefined,
+        userId: dto.userId ? dto.userId : dto.userId,
       },
       relations: ['questions'],
+      order: {
+        createdAt: 'DESC',
+      },
       take: +dto.pageSize,
       skip: +(dto.page - 1) * +dto.pageSize,
     });
     const total = await this.quizRepository.count({
       where: {
-        name: dto.search ? Like(dto.search) : undefined,
+        name: dto.search
+          ? Raw((alias) => `LOWER(${alias}) Like LOWER(:search)`, {
+              search: `%${dto.search}%`,
+            })
+          : undefined,
+        userId: dto.userId ? dto.userId : dto.userId,
       },
     });
     return { data: quiz, total: total };
@@ -174,7 +189,7 @@ export class QuizService {
               },
               {
                 role: 'user',
-                content: `Generate for me about 10 questions of this topic \"${dto?.message}\" and 4 options each and mark the correct answer. Returning without markdown an array of json with the content field being the question content, options field is an array of json with the content field being the answer content, isCorrect of type boolean to mark the correct answer, true if content is correct, false if content is wrong. Please dont return unless markdown because i will parse it to json. Language is vietnamese`,
+                content: `Generate for me about 10 questions of this topic \"${dto?.message}\" and 4 options each and mark the correct answer. Returning without markdown an array of json with the content field being the question content, options field is an array of json with the content field being the answer content, isCorrect of type boolean to mark the correct answer, true if content is correct, false if content is wrong. Language is vietnamese`,
               },
             ],
           },
@@ -186,17 +201,16 @@ export class QuizService {
         ),
       );
 
-      const rawContent = response?.data?.choices?.[0]?.message?.content;
-
-      console.log(rawContent);
-      const options = JSON.parse(rawContent);
+      const rawContent: string = response?.data?.choices?.[0]?.message?.content;
+      // console.log(rawContent);
+      const options = JSON.parse(rawContent.match(/\[[\w\W]+\]/gm)[0]);
 
       return {
         result: 'success',
         data: options,
       };
     } catch (error) {
-      console.log('suggestAnswerCompletion', error?.response?.data);
+      console.log('suggestAnswerCompletion', error?.response?.data || error);
       throw new Error(error);
     }
   }
@@ -227,20 +241,20 @@ export class QuizService {
         ),
       );
 
-      const rawContent = response?.data?.choices?.[0]?.message?.content;
-      const options = JSON.parse(rawContent);
+      const rawContent: string = response?.data?.choices?.[0]?.message?.content;
+      const options = JSON.parse(rawContent.match(/\[[\w\W]+\]/gm)[0]);
 
       return {
         result: 'success',
         data: options,
       };
     } catch (error) {
-      console.log('suggestAnswerCompletion', error?.response?.data);
+      console.log('suggestAnswerCompletion', error?.response?.data || error);
       throw new Error(error);
     }
   }
 
-  async downloadQuizPdf(dto: GetDetailQuizDto) {
+  async exportQuizPdf(dto: GetDetailQuizDto) {
     const quiz = await this.quizRepository.findOne({
       relations: ['categories', 'questions', 'questions.options'],
       where: {
@@ -248,11 +262,14 @@ export class QuizService {
       },
     });
 
+    const templatePath = path.join(__dirname, './templates/quiz-pdf.ejs');
+    const html = await ejs.renderFile(templatePath, quiz);
+
     const pdfBuffer: any = await htmlToDdf.generatePdf(
-      { content: 'html' },
+      { content: html },
       { format: 'A4' },
     );
 
-    return { data: quiz };
+    return { data: pdfBuffer };
   }
 }

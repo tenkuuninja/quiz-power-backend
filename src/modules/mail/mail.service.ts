@@ -16,7 +16,7 @@ export class MailService {
 
     await this.mailerService.sendMail({
       to: email,
-      subject: '[MEO] Verification code',
+      subject: '[QuizPower] Reset Password code',
       html: html,
     });
   }

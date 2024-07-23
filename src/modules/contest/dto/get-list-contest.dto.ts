@@ -7,6 +7,11 @@ export class GetListContestDto {
   @IsString()
   @IsNullable()
   @ApiProperty({ default: '' })
+  readonly userId: number;
+
+  @IsString()
+  @IsNullable()
+  @ApiProperty({ default: '' })
   readonly search: string;
 
   @IsNumber()
