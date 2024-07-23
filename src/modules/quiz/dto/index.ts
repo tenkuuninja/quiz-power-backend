@@ -9,3 +9,4 @@ export * from './update-quiz-question.dto';
 export * from './update-quiz.dto';
 export * from './suggestion-answer.dto';
 export * from './suggestion-question.dto';
+export * from './export-quiz.dto';

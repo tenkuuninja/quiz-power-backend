@@ -15,6 +15,7 @@ import {
 import {
   CreateQuizDto,
   DeleteQuizDto,
+  ExportQuizDto,
   GetDetailQuizDto,
   GetListQuizDto,
   SuggestionAnswerDto,
@@ -254,7 +255,7 @@ export class QuizService {
     }
   }
 
-  async exportQuizPdf(dto: GetDetailQuizDto) {
+  async exportQuizPdf(dto: ExportQuizDto) {
     const quiz = await this.quizRepository.findOne({
       relations: ['categories', 'questions', 'questions.options'],
       where: {

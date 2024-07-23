@@ -18,6 +18,7 @@ import { AuthGuard } from '../../common/guard';
 import {
   CreateQuizDto,
   DeleteQuizDto,
+  ExportQuizDto,
   GetDetailQuizDto,
   GetListQuizDto,
   SuggestionAnswerDto,
@@ -105,7 +106,7 @@ export class QuizController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @UseGuards(AuthGuard)
   @HttpCode(200)
-  async exportQuizPdf(@Body() body: GetDetailQuizDto) {
+  async exportQuizPdf(@Body() body: ExportQuizDto) {
     return this.quizService.exportQuizPdf(body);
   }
 }
