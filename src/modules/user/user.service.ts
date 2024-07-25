@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Like, Repository } from 'typeorm';
+import { Like, Raw, Repository } from 'typeorm';
 import { UserEntity } from '../../entities';
 import { DeleteUserDto, GetListUserDto } from './dto';
 import { EUserRole } from '../../common/enums/entity.enum';
@@ -15,16 +15,27 @@ export class UserService {
   async getListUser(dto: GetListUserDto) {
     const user = await this.userRepository.find({
       where: {
-        name: dto.search ? Like(dto.search) : undefined,
+        name: dto.search
+          ? Raw((alias) => `LOWER(${alias}) Like LOWER(:search)`, {
+              search: `%${dto.search}%`,
+            })
+          : undefined,
         role: EUserRole.User,
       },
       relations: ['quizzes'],
+      order: {
+        createdAt: 'DESC',
+      },
       take: +dto.pageSize,
       skip: +(dto.page - 1) * +dto.pageSize,
     });
     const total = await this.userRepository.count({
       where: {
-        name: dto.search ? Like(dto.search) : undefined,
+        name: dto.search
+          ? Raw((alias) => `LOWER(${alias}) Like LOWER(:search)`, {
+              search: `%${dto.search}%`,
+            })
+          : undefined,
       },
     });
     return { data: user, total: total };

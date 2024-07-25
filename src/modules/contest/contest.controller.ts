@@ -59,7 +59,7 @@ export class ContestController {
 
   @Post('/find-contest')
   @UsePipes(new ValidationPipe({ transform: true }))
-  @UseGuards(AuthGuard)
+  // @UseGuards(AuthGuard)
   @HttpCode(200)
   async findContest(@Body() body: FindContestDto) {
     return this.contestService.getContestByCode({ ...body });

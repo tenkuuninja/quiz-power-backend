@@ -44,6 +44,9 @@ export class QuizService {
         visibility: EQuizVisibility.Public,
       },
       relations: ['questions'],
+      order: {
+        createdAt: 'DESC',
+      },
       take: 16,
       skip: 0,
     });

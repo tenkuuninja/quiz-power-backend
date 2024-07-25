@@ -194,7 +194,9 @@ export class ContestService {
           {
             relations: ['quiz.categories', 'questions', 'questions.options'],
             where: {
-              id: +dto.quizId,
+              quiz: {
+                id: +dto.quizId,
+              },
               version: currentQuiz.version,
             },
           },
@@ -229,6 +231,7 @@ export class ContestService {
 
   async getContestByCode(dto: FindContestDto) {
     const contestId = codeStore[dto.code];
+    console.log('codeStore', codeStore);
     if (!contestId) {
       throw new BadRequestException('Contest not found!');
     }
@@ -325,6 +328,17 @@ export class ContestService {
 
     switch (question?.questionType) {
       case EQuestionType.SingleChoice:
+        for (const optionId of dto?.optionIds || []) {
+          const selectOption = question?.options?.find(
+            (option) => option?.id === optionId,
+          );
+          if (!selectOption?.isCorrect) {
+            isCorrect = false;
+            break;
+          }
+        }
+        break;
+
       case EQuestionType.MultipleChoice:
         for (const optionId of dto?.optionIds || []) {
           const selectOption = question?.options?.find(
@@ -332,13 +346,23 @@ export class ContestService {
           );
           if (!selectOption?.isCorrect) {
             isCorrect = false;
+            break;
           }
+        }
+        const correctOptionWithoutSelect = question?.options?.find(
+          (option) =>
+            dto?.optionIds?.find((oId) => oId !== option?.id) &&
+            option.isCorrect,
+        );
+        if (correctOptionWithoutSelect) {
+          isCorrect = false;
         }
         break;
 
       case EQuestionType.TextEntryWithLength:
         const selectOption = question?.options?.find(
-          (option) => option?.content?.toLowerCase === dto?.content,
+          (option) =>
+            option?.content?.toLowerCase() === dto?.content?.toLowerCase(),
         );
         if (!selectOption?.isCorrect) {
           isCorrect = false;
@@ -352,11 +376,12 @@ export class ContestService {
     // calc score
     const baseScore = 400;
     const baseTime = 30;
-    const scorePerSecond = 20;
+    const scorePerSecond = 10;
     let score = 0;
     if (isCorrect) {
+      const streakBonus = (player.streak * 10 + 100) / 100;
       player.streak++;
-      score += baseScore;
+      score += baseScore * streakBonus;
     } else {
       player.streak = 0;
     }
@@ -405,14 +430,11 @@ export class ContestService {
         newContest.startedAt = contest?.startedAt;
         newContest.endedAt = contest?.endedAt;
         newContest.createdAt = contest?.createdAt;
-        console.log(1, newContest);
 
         newContest = await transactionalEntityManager.save(
           ContestEntity,
           newContest,
         );
-
-        console.log(2, contest?.players);
 
         for (const playerDto of contest?.players || []) {
           let player = new PlayerEntity();
