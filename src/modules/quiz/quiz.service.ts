@@ -193,7 +193,7 @@ export class QuizService {
               },
               {
                 role: 'user',
-                content: `Generate for me about 10 questions of this topic \"${dto?.message}\" and 4 options each and mark the correct answer. Returning without markdown an array of json with the content field being the question content, options field is an array of json with the content field being the answer content, isCorrect of type boolean to mark the correct answer, true if content is correct, false if content is wrong. Language is vietnamese`,
+                content: `Generate for me about ${dto.totalQuestion} questions of this topic \"${dto?.message}\" and 4 options each and mark the correct answer. Returning without markdown an array of json with the content field being the question content, options field is an array of json with the content field being the answer content, isCorrect of type boolean to mark the correct answer, true if content is correct, false if content is wrong. Language is vietnamese`,
               },
             ],
           },
